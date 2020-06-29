@@ -11,12 +11,13 @@ _**Does microvascular health modify the relationship between BMI and T2D?**_
 
 To answer that question we can use the [_**factorial Mendelian Randomization**_](https://academic.oup.com/ije/article/doi/10.1093/ije/dyz161/5542600) approach, a method that tests for interactions between risk factors using genetic variation as instrument.
 
-We can use the results from the latest GWAS on BMI, performed by the GIANT Consortium:
+We can use the results from the latest GWAS on BMI, performed by the GIANT Consortium, in order to :
 
 ```{r}
 bmi_hits <- vroom::vroom("https://portals.broadinstitute.org/collaboration/giant/images/e/e2/Meta-analysis_Locke_et_al%2BUKBiobank_2018_top_941_from_COJO_analysis_UPDATED.txt.gz")
 head(bmi_hits)
 ```
+
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
 
