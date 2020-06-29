@@ -1,0 +1,26 @@
+---
+title: "Interaction between obesity and microvascular status"
+output: html_notebook
+---
+
+In our previous [_**work**_](https://github.com/danielcoral/DVA_codes) we constructed two BMI increasing genetic profiles, which were associated either with an increased or a decreased risk for T2D. We named them _**concordant**_ and _**discordant**_ profiles, respectively. We found that the main phenotypic difference between these two profiles is their effect on a number of markers of _**systemic microvascular health**_, such as retinal vascular disease, hypertension and coronary heart disease. Therefore, it is likely that microvascular condition is a key factor linking obesity to T2D.
+
+From these findings stems the following research question:
+
+_**Does microvascular health modify the relationship between BMI and T2D?**_
+
+To answer that question we can use the [_**factorial Mendelian Randomization**_](https://academic.oup.com/ije/article/doi/10.1093/ije/dyz161/5542600) approach, a method that tests for interactions between risk factors using genetic variation as instrument.
+
+We can use the results from the latest GWAS on BMI, performed by the GIANT Consortium:
+
+```{r}
+bmi_hits <- vroom::vroom("https://portals.broadinstitute.org/collaboration/giant/images/e/e2/Meta-analysis_Locke_et_al%2BUKBiobank_2018_top_941_from_COJO_analysis_UPDATED.txt.gz")
+head(bmi_hits)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
