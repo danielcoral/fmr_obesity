@@ -1,3 +1,3 @@
 # Obesity & Microvascular condition
 
-Testing the interaction between obesity and microvascular condition using factorial mendelian randomization
+Testing for the interaction between obesity and microvascular condition using factorial mendelian randomization
