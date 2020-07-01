@@ -1,28 +1,215 @@
 ---
 title: "Interaction between obesity and microvascular status"
+author: "Daniel Coral"
 output: html_notebook
 ---
 
-In our previous [_**work**_](https://github.com/danielcoral/DVA_codes) we constructed two BMI increasing genetic profiles, which were associated either with an increased or a decreased risk for T2D. We named them _**concordant**_ and _**discordant**_ profiles, respectively. We found that the main phenotypic difference between these two profiles is their effect on a number of markers of _**systemic microvascular health**_, such as retinal vascular disease, hypertension and coronary heart disease. Therefore, it is likely that microvascular condition is a key factor linking obesity to T2D.
+---
 
-From these findings stems the following research question:
+</br>
 
-_**Does microvascular health modify the relationship between BMI and T2D?**_
+### Introduction
 
-To answer that question we can use the [_**factorial Mendelian Randomization**_](https://academic.oup.com/ije/article/doi/10.1093/ije/dyz161/5542600) approach, a method that tests for interactions between risk factors using genetic variation as instrument.
+</br>
 
-We can use the results from the latest GWAS on BMI, performed by the GIANT Consortium, as BMI instruments:
+In an effort to understand the factors linking obesity to its metabolic risk, we constructed two BMI increasing genetic profiles, classified according to their direction of effect on T2D risk: 
+
+1. The _**concordant**_ profile, which increases T2D risk.
+
+2. The _**discordant**_ profile, which decreases T2D risk. 
+
+Using a [summary-based phenome-wide approach](https://github.com/danielcoral/DVA_codes) that takes into account between-trait correlations through a clustering technique, we compared their patterns of association across the human phenome explored to date, queried from the [Phenoscanner GWAS repository](phenoscanner.medschl.cam.ac.uk). We found that the main phenotypic difference between these two profiles seems to be in their effects on a number of markers of _**systemic microvascular health**_, such as retinal vascular disease, hypertension and coronary heart disease. Risk for all these markers appear to be increased by the concordant while decreased by the discordant profiles. These findings may imply a likely role of microvascular condition in the link between obesity to T2D, and prompted us to ask:
+
+</br>
+
+<center> _**Does microvascular condition modify the relationship between BMI and T2D?**_ </center>
+
+</br>
+
+---------
+
+### Methods
+
+</br>
+
+To answer this question, we used the [factorial Mendelian Randomization](https://academic.oup.com/ije/article/doi/10.1093/ije/dyz161/5542600) approach, a method that tests for interactions between risk factors through the instrumentalization of genetic variation. We tested this interaction using individual level data from the [UK Biobank](https://www.ukbiobank.ac.uk/).
+
+</br>
+
+#### Genetic instruments for BMI:
+
+As done previously, we used the results from the [latest GWAS on BMI](https://doi.org/10.1093/hmg/ddy271), found in the [GIANT Consortium website](https://portals.broadinstitute.org/collaboration/giant/index.php/Main_Page), as BMI instruments. We used the results from the conditional and joint analysis (COJO) which expanded the genome-wide significant associations to 941:
 
 ```{r}
-bmi_hits <- vroom::vroom("https://portals.broadinstitute.org/collaboration/giant/images/e/e2/Meta-analysis_Locke_et_al%2BUKBiobank_2018_top_941_from_COJO_analysis_UPDATED.txt.gz")
-head(bmi_hits)
+`%>%` <- magrittr::`%>%`
+
+bmi_ins <- suppressMessages(
+  vroom::vroom(
+    "https://portals.broadinstitute.org/collaboration/giant/images/e/e2/Meta-analysis_Locke_et_al%2BUKBiobank_2018_top_941_from_COJO_analysis_UPDATED.txt.gz"
+  )
+) %>%
+  dplyr::transmute(
+    rsid = SNP, chr = CHR, pos = POS,
+    # Aligning to the BMI increasing allele:
+    ea = ifelse(sign(BETA) == 1, Tested_Allele, Other_Allele),
+    nea = ifelse(sign(BETA) == 1, Other_Allele, Tested_Allele),
+    eaf = ifelse(sign(BETA) == 1, 
+                 Freq_Tested_Allele_in_HRS,
+                 1 - Freq_Tested_Allele_in_HRS),
+    beta = abs(BETA_COJO), 
+    se = SE_COJO, p = P_COJO
+  )
+
+head(bmi_ins)
 ```
 
-And then use the 
+</br>
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+#### Genetic instruments for microvascular condition:
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+Microvascular status can be assessed non-invasevely through imaging of retinal vasculature. Two studies performed on European population have assessed the genetic component of various retinal vascular measurements: [Jensen et al 2015](https://doi.org/10.1161/circgenetics.115.001142) and [Veluchamy et al 2019](https://doi.org/10.1161/atvbaha.119.312552). These results can be extracted from the [_**GWAS Catalog**_](https://www.ebi.ac.uk/gwas/) using the [gwasrapidd package](https://rmagno.eu/gwasrapidd/index.html).
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+We first extract the studies' IDs:
+```{r}
+retinal_studies <- gwasrapidd::get_studies(
+  # Experimental Factor Ontology for retinal vascular measurement:
+  efo_id = "EFO_0010554"
+)
 
+# Extracting the items to be used:
+retinal_studies <- lapply(
+  c("studies", "publications"),
+  function(item){
+    slot(retinal_studies, item)
+  }
+) %>%
+  purrr::reduce(dplyr::inner_join, by = "study_id") %>%
+  dplyr::select(study_id, reported_trait, author_fullname) %>%
+  dplyr::arrange(reported_trait)
+
+retinal_studies
+```
+
+</br>
+
+These IDs are then used to extract the associations found:
+
+```{r}
+retinal_results <- sapply(
+  retinal_studies$study_id,
+  function(study){
+    # Query GWAS Catalog for the association data:
+    study_data <- gwasrapidd::get_associations(study_id = study)
+    # Extracting items to be used:
+    lapply(
+      c("associations", "risk_alleles"),
+      function(item) slot(study_data, item)
+    ) %>%
+      # Joining extracted items into a table
+      purrr::reduce(dplyr::inner_join, by = "association_id")
+  },
+  simplify = F
+) %>%
+  # Joining associations into a table
+  dplyr::bind_rows(.id = "study_id") %>%
+  dplyr::transmute(
+    study_id, 
+    rsid = variant_id, ea = risk_allele, 
+    beta = ifelse(
+      beta_direction == "increase", 
+      beta_number, -beta_number
+    ),
+    se = standard_error, p = pvalue
+  ) %>%
+  dplyr::inner_join(retinal_studies, by = "study_id")
+
+retinal_results
+```
+
+</br>
+
+More information about these variants, such as the non-effect allele, can be extracted using the R Client of [MyVariant.info](https://doi.org/doi:10.18129/B9.bioc.myvariant):
+
+```{r}
+retinal_ins <- myvariant::getVariants(
+  # This will return the Human Genome Variation Society nomenclature (HGVS)
+  # HGVS includes chromosome, position and alleles
+  unique(retinal_results$rsid), fields = "X_id", return.as = "text"
+) %>%
+  # Parsing the data retrieved:
+  jsonlite::fromJSON() %>%
+  dplyr::select(-3) %>%
+  setNames(c("rsid", "chrpos")) %>%
+  tidyr::separate(chrpos, c("chr", "pos", "a2"), sep = ":g\\.|>") %>%
+  dplyr::mutate(
+    hg19_pos = gsub("[A-Z]*", "", pos),
+    a1 = gsub("[0-9]*", "", pos),
+    pos = NULL
+  ) %>%
+  # Joining with GWAS Catalog associations:
+  dplyr::inner_join(retinal_results, by = "rsid") %>%
+  dplyr::filter(ea == a1 | ea == a2) %>%
+  # Parsing:
+  dplyr::transmute(
+    rsid, chr, hg19_pos,
+    other_a = ifelse(ea == a1, a2, a1),
+    ef_a = ifelse(sign(beta) == 1, ea, other_a),
+    nea = ifelse(sign(beta) == 1, other_a, ea),
+    ea = ef_a,
+    beta = abs(beta), se, p,
+    ret_trait = dplyr::case_when(
+      reported_trait == "Central retinal arteriolar equivalent" ~ "crae",
+      reported_trait == "Central retinal vein equivalent" ~ "crve",
+      reported_trait == "Maximum retinal arteriolar tortuosity" ~ "mrat",
+      reported_trait == "Maximum retinal venular tortuosity" ~ "mrvt",
+      reported_trait == "Retinal arteriolar tortuosity" ~ "rat",
+      reported_trait == "Retinal venular tortuosity" ~ "rvt",
+      reported_trait == "Retinal arteriole-to-venule ratio" ~ "ratvr"
+    )
+  ) %>%
+  dplyr::select(-c(other_a, ef_a)) %>%
+  dplyr::arrange(ret_trait)
+retinal_ins
+```
+
+</br>
+
+We then performed separate analyses for each of these retinal vascular measurements obtained, starting with the simplest 2x2 factorial design. UK Biobank population was divided into 4 groups, according to genetic scores for BMI and each retinal vascular measurement. We assessed their T2D risk, taking the group with low scores for both conditions as reference:
+
+```{r echo=F}
+matrix(
+  paste(
+    paste(rep(c("High", "Low"), 2), "BMI"), 
+    paste(c(rep("high", 2), rep("low", 2)), 
+          rep("retinal vascular measurement", 4)), 
+    sep = ", "
+  ), ncol = 2, 
+  dimnames = rep(list(paste(c("Above", "Below"), "median")),2)
+) %>%
+  data.frame(check.names = F) %>% 
+  tibble::rownames_to_column("  ") %>% 
+  dplyr::mutate(` ` = rep("BMI genetic score", 2)) %>% 
+  dplyr::select(` `, everything()) %>% 
+  knitr::kable() %>% 
+  kableExtra::kable_styling() %>% 
+  kableExtra::column_spec(1, bold = T) %>% 
+  kableExtra::column_spec(2, bold = T) %>% 
+  kableExtra::add_header_above(
+    c(" " = 2, "Retinal vascular measurement genetic score" = 2)
+  ) %>%
+  kableExtra::collapse_rows(1)
+
+```
+
+</br>
+
+```{r echo=FALSE}
+# Exporting the snps to build the genetic score in UKB
+bmi_ins %>% 
+  dplyr::select(rsid, ea) %>%
+  dplyr::bind_rows(
+    retinal_ins %>%
+      dplyr::select(rsid, ea)
+  ) %>%
+  readr::write_tsv("../data/snps.txt")
+```
