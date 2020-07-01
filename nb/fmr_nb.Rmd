@@ -142,6 +142,7 @@ retinal_ins <- myvariant::getVariants(
   setNames(c("rsid", "chrpos")) %>%
   tidyr::separate(chrpos, c("chr", "pos", "a2"), sep = ":g\\.|>") %>%
   dplyr::mutate(
+    chr = as.numeric(gsub("chr", "", chr)),
     hg19_pos = gsub("[A-Z]*", "", pos),
     a1 = gsub("[0-9]*", "", pos),
     pos = NULL
@@ -206,10 +207,16 @@ matrix(
 ```{r echo=FALSE}
 # Exporting the snps to build the genetic score in UKB
 bmi_ins %>% 
-  dplyr::select(rsid, ea) %>%
+  dplyr::select(chr, rsid, ea) %>%
   dplyr::bind_rows(
     retinal_ins %>%
-      dplyr::select(rsid, ea)
+      dplyr::select(chr, rsid, ea)
   ) %>%
-  readr::write_tsv("../data/snps.txt")
+  dplyr::group_by(chr) %>%
+  dplyr::do(
+    readr::write_tsv(
+      data.frame(rsid = .$rsid, ea = .$ea), 
+      paste0("../data/grs_snps/snps_chr", unique(.$chr), ".txt")
+    )
+  )
 ```
