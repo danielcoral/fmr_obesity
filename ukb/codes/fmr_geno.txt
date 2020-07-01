@@ -1,0 +1,10 @@
+Executable     = /ludc/Active_Projects/Discordant_variant_analysis/Private/fmr_obesity/ukb/codes/fmr_geno.sh
+Log            = /ludc/Active_Projects/Discordant_variant_analysis/Private/fmr_obesity/ukb/codes/fmr_geno.log
+Output         = /ludc/Active_Projects/Discordant_variant_analysis/Private/fmr_obesity/ukb/codes/fmr_geno.out
+Error          = /ludc/Active_Projects/Discordant_variant_analysis/Private/fmr_obesity/ukb/codes/fmr_geno.err
+request_cpus   = 8
+request_memory = 10000
+notify_user    = daniel_coral@med.lu.se			
+notification   = Always
+getenv         = True
+Queue
