@@ -225,7 +225,7 @@ bmi_ins %>%
   dplyr::mutate(
     trait = "bmi",
     hg19_pos = pos,
-    eaf = NULL
+    eaf = NULL, pos = NULL
   ) %>%
   dplyr::bind_rows(
     retinal_ins %>%
